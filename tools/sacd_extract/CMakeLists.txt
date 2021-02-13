@@ -105,10 +105,15 @@ file(GLOB main_headers ./*.h)
 file(GLOB main_sources ./*.c)
 source_group(main FILES ${main_headers} ${main_sources})
 
+find_package(Iconv)
+
 add_executable(sacd_extract 
     ${main_headers} ${main_sources}
     ${libcommon_headers} ${libcommon_sources}
     ${libdstdec_headers} ${libdstdec_sources}
     ${libid3_headers} ${libid3_sources}
     ${libsacd_headers} ${libsacd_sources}
+    ${Iconv_INCLUDE_DIRS}
     )
+
+target_link_libraries(sacd_extract ${Iconv_LIBRARIES})
