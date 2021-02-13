@@ -1,0 +1,5 @@
+**/CMakeCache.txt
+**/CMakeFiles/
+**/Makefile
+**/*.cmake
+tools/sacd_extract/sacd_extract
