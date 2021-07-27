@@ -22,7 +22,7 @@ This is a fork of setmind/sacd-ripper some additional features:
   - option to overwrite output files instead to add " (1)", " (2)", etc to file/directory names
   - option to extract one DSF file with cuesheet (similar to DFF)
 
-This can be compiled with gcc10+ (-fcommon option added in CMakeLists.txt)
+This can be compiled with gcc10+.
 
 This is a fork of sacd-ripper/sacd-ripper.  For original release documents, please refer to https://github.com/sacd-ripper/sacd-ripper .  This fork focuses only on improvement of sacd_extract, so most of the irrelevant codes have been removed.
 
