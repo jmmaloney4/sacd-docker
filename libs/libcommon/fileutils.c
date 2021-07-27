@@ -29,6 +29,7 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <unistd.h>
+#include <dirent.h>
 
 #include "logging.h"
 #include "fileutils.h"
@@ -346,7 +347,7 @@ int recursive_parent_mkdir(char* path_and_name, mode_t mode)
     return rc;
 }
 
-char *get_unique_path(char *dir, char *file, const char *ext)
+char *get_unique_path(char *dir, char *file, const char *ext, int unique)
 {
     char *path;
     char *file_new;
@@ -360,7 +361,7 @@ char *get_unique_path(char *dir, char *file, const char *ext)
             snprintf(file_new, strlen(file)+8, "%s (%d)", file, i);
         }
         path = make_filename(dir, 0, file_new, ext);
-        if(stat_wrap(path, &stat_file) != 0){
+        if(!unique || stat_wrap(path, &stat_file) != 0){
             free(path);
             path = make_filename(dir, 0, file_new, ext);
             break;
@@ -375,7 +376,7 @@ char *get_unique_path(char *dir, char *file, const char *ext)
     return path;
 }
 
-void get_unique_filename(char **file, const char *ext)
+void get_unique_filename(char **file, const char *ext, int unique)
 {
     struct stat stat_file;
     int file_exists, count = 1;
@@ -383,7 +384,7 @@ void get_unique_filename(char **file, const char *ext)
     char *ext_file = make_filename(0, 0, *file, ext);
     file_exists = (stat_wrap(ext_file, &stat_file) == 0);
     free(ext_file);
-    while (file_exists)
+    while (file_exists && unique)
     {
         int len = strlen(file_org) + 10;
         char *file_copy = (char *) malloc(len);
@@ -397,14 +398,14 @@ void get_unique_filename(char **file, const char *ext)
     free(file_org);
 }
 
-void get_unique_dir(char *device, char **dir)
+void get_unique_dir(char *device, char **dir, int unique)
 {
     struct stat stat_dir;
     int dir_exists, count = 1;
     char *dir_org = strdup(*dir);
     char *device_dir = make_filename(device, *dir, 0, 0);
     dir_exists = (stat_wrap(device ? device_dir : *dir, &stat_dir) == 0);
-    while (dir_exists)
+    while (dir_exists && unique)
     {
         free(device_dir);
         int len = strlen(dir_org) + 10;

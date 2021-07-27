@@ -69,6 +69,8 @@ static struct opts_s
 {
     int            two_channel;
     int            multi_channel;
+    int            prefer_channel;
+    int            output_dsf_em;
     int            output_dsf;
     int            output_dsdiff_em;
     int            output_dsdiff;
@@ -76,11 +78,14 @@ static struct opts_s
     int            concurrent;
     int            convert_dst;
     int            export_cue_sheet;
+    int            export_cue_sheet_nobom;
     int            print;
     char          *input_device; /* Access method driver should use for control */
     char           output_file[512];
+    char          *output;
     char          *output_dir;
     char          *output_dir_conc;
+    int            unique;
     int            select_tracks;
     char           selected_tracks[256]; /* scarletbook is limited to 256 tracks */
     int            dsf_nopad; 
@@ -111,8 +116,14 @@ static int parse_options(int argc, char *argv[])
         "Usage: %s [options] [outfile]\n"
         "  -2, --2ch-tracks                : Export two channel tracks (default)\n"
         "  -m, --mch-tracks                : Export multi-channel tracks\n"
+        "  -X, --xch-tracks[=MODE]         : Export multi-channel or two channel tracks MODE:\n"
+        "                                      m2 - multi-channel or if not exist two channel tracks\n"
+        "                                      2m - two-channel or if not exist multi channel tracks\n"
+        "                                      m  - multi-channel tracks only\n"
+        "                                      2  - two channel tracks only\n"
         "  -e, --output-dsdiff-em          : output as Philips DSDIFF (Edit Master) file\n"
         "  -p, --output-dsdiff             : output as Philips DSDIFF file\n"
+        "  -S, --output-dsf-em             : output as Sony DSF (Edit Master) file\n"
         "  -s, --output-dsf                : output as Sony DSF file\n"
         "  -z, --dsf-nopad                 : Do not zero pad DSF (cannot be used with -t)\n"
         "  -t, --select-track              : only output selected track(s) (ex. -t 1,5,13)\n"
@@ -122,11 +133,13 @@ static int parse_options(int argc, char *argv[])
 #endif
         "  -c, --convert-dst               : convert DST to DSD\n"
         "  -C, --export-cue                : Export a CUE Sheet\n"
+        "  -B, --cue-nobom                 : CUE Sheet without UTF-8 BOM\n"
         "  -i, --input[=FILE]              : set source and determine if \"iso\" image, \n"
         "                                    device or server (ex. -i 192.168.1.10:2002)\n"
         "  -o, --output-dir[=DIR]          : Output directory (ISO output dir for concurrent processing mode)\n"
         "  -y, --output-dir-conc[=DIR]     : DSF/DSDIFF Output directory for concurrent processing mode\n"
         "  -P, --print                     : display disc and track information\n" 
+        "  -W, --overwrite                 : overwrite, instead of numbering directory or file if already exist\n"
         "  -v, --version                   : Display version\n"
         "\n"
         "Help options:\n"
@@ -143,15 +156,17 @@ static int parse_options(int argc, char *argv[])
         "        [-c|--convert-dst] [-C|--export-cue] [-i|--input FILE] [-o|--output-dir DIR] [-y|--output-dir-conc DIR] [-P|--print]\n"
         "        [-?|--help] [--usage]\n";
 #ifdef SECTOR_LIMIT
-    static const char options_string[] = "2mepszIcCvi:o:y:t:P?";
+    static const char options_string[] = "2mepsSzIcCBvX:i:o:y:t:WP?";
 #else
-    static const char options_string[] = "2mepszIwcCvi:o:y:t:P?";
+    static const char options_string[] = "2mepsSzIwcCBvX:i:o:y:t:WP?";
 #endif
     static const struct option options_table[] = {
         {"2ch-tracks", no_argument, NULL, '2' },
         {"mch-tracks", no_argument, NULL, 'm' },
+        {"xch-tracks", required_argument, NULL, 'X' },
         {"output-dsdiff-em", no_argument, NULL, 'e'}, 
         {"output-dsdiff", no_argument, NULL, 'p'}, 
+        {"output-dsf-em", no_argument, NULL, 'S'}, 
         {"output-dsf", no_argument, NULL, 's'}, 
         {"dsf-nopad", no_argument, NULL, 'z'}, 
         {"output-iso", no_argument, NULL, 'I'}, 
@@ -160,10 +175,12 @@ static int parse_options(int argc, char *argv[])
 #endif
         {"convert-dst", no_argument, NULL, 'c'}, 
         {"export-cue", no_argument, NULL, 'C'}, 
+        {"cue-nobom", no_argument, NULL, 'B'}, 
         {"version", no_argument, NULL, 'v'},
         {"input", required_argument, NULL, 'i' },
         {"output-dir", required_argument, NULL, 'o' },
         {"output-dir-conc", required_argument, NULL, 'y' },
+        {"overwrite", no_argument, NULL, 'W'},
         {"print", no_argument, NULL, 'P' },
 
         {"help", no_argument, NULL, '?' },
@@ -182,9 +199,39 @@ static int parse_options(int argc, char *argv[])
         case 'm': 
             opts.multi_channel = 1; 
             break;
+        case 'X': 
+            if(!strcmp("m2", optarg))
+            {
+                opts.two_channel = 1;
+                opts.multi_channel = 2;
+            }
+            else if(!strcmp("2m", optarg))
+            {
+                opts.two_channel = 2;
+                opts.multi_channel = 1;
+            }
+            else if(!strcmp("2", optarg))
+            {
+                opts.two_channel = 1;
+                opts.multi_channel = 0;
+            }
+            else if(!strcmp("m", optarg))
+            {
+                opts.two_channel = 0;
+                opts.multi_channel = 1;
+            }
+            else
+            {
+                fprintf(stdout, "Unknown mode: `%s' for option --xch-tracks\n", optarg);
+                fprintf(stdout, help_text, program_name);
+                free(program_name);
+                return 1;
+            }
+            break;
         case 'e': 
             opts.output_dsdiff_em = 1;
             opts.output_dsdiff = 0;
+            opts.output_dsf_em = 0;
             opts.output_dsf = 0; 
             opts.output_iso = 0;
             opts.export_cue_sheet = 1;
@@ -192,12 +239,21 @@ static int parse_options(int argc, char *argv[])
         case 'p': 
             opts.output_dsdiff_em = 0; 
             opts.output_dsdiff = 1; 
+            opts.output_dsf_em = 0;
             opts.output_dsf = 0; 
             break;
         case 's': 
             opts.output_dsdiff_em = 0; 
             opts.output_dsdiff = 0; 
+            opts.output_dsf_em = 0;
             opts.output_dsf = 1; 
+            break;
+        case 'S': 
+            opts.output_dsdiff_em = 0; 
+            opts.output_dsdiff = 0;
+            opts.output_dsf_em = 1;
+            opts.output_dsf = 0;
+            opts.export_cue_sheet = 1;
             break;
         case 't': 
             {
@@ -220,14 +276,19 @@ static int parse_options(int argc, char *argv[])
             opts.dsf_nopad = 1;
             break;
         case 'I': 
+            opts.output_dsf_em = 0; 
             opts.output_dsdiff_em = 0; 
             opts.output_iso = 1;
+            break;
+        case 'W':
+            opts.unique = 0;
             break;
         case 'w':
             opts.concurrent = 1;
             break;
         case 'c': opts.convert_dst = 1; break;
         case 'C': opts.export_cue_sheet = 1; break;
+        case 'B': opts.export_cue_sheet_nobom = 1; break;
         case 'i': opts.input_device = strdup(optarg); break;
         case 'o': opts.output_dir = strdup(optarg); break;
         case 'y': opts.output_dir_conc = strdup(optarg); break;
@@ -316,6 +377,7 @@ static void init(void)
     opts.two_channel        = 0;
     opts.multi_channel      = 0;
     opts.output_dsf         = 0;
+    opts.output_dsf_em      = 0;
     opts.output_iso         = 0;
     opts.output_dir         = 0;
     opts.output_dir_conc    = 0;
@@ -324,6 +386,8 @@ static void init(void)
     opts.output_dsdiff_em   = 0;
     opts.convert_dst        = 0;
     opts.export_cue_sheet   = 0;
+    opts.export_cue_sheet_nobom = 0;
+    opts.unique             = 0;
     opts.print              = 0;
     opts.input_device       = "/dev/cdrom";
     opts.dsf_nopad              = 0;
@@ -407,16 +471,22 @@ int main(int argc, char* argv[])
                     scarletbook_print(handle);
                 }
 
-                if (opts.output_dsf || opts.output_iso || opts.output_dsdiff || opts.output_dsdiff_em || opts.export_cue_sheet)
+                if (opts.output_dsf || opts.output_dsf_em || opts.output_iso || opts.output_dsdiff || opts.output_dsdiff_em || opts.export_cue_sheet)
                 {
                     output = scarletbook_output_create(handle, handle_status_update_track_callback, handle_status_update_progress_callback, safe_fwprintf);
 
                     // select the channel area
-                    if(has_two_channel(handle) && opts.two_channel){
+                    if(has_two_channel(handle) && opts.two_channel == 2){
                         area_idx[n_areas ++] = handle->twoch_area_idx;
+                        opts.multi_channel = 0;
                     }
-                    if(has_multi_channel(handle) && opts.multi_channel){
+                    if(has_multi_channel(handle) && opts.multi_channel ){
                         area_idx[n_areas ++] = handle->mulch_area_idx;
+                        if(opts.multi_channel == 2)
+                            opts.two_channel = 0;
+                    }
+                    if(has_two_channel(handle) && opts.two_channel == 1){
+                        area_idx[n_areas ++] = handle->twoch_area_idx;
                     }
 
                     albumdir = (strlen(opts.output_file) > 0 ? strdup(opts.output_file) : get_album_dir(handle));
@@ -432,10 +502,10 @@ int main(int argc, char* argv[])
                                 strcat(albumdir_loc, j ? " [multi]" : " [stereo]");
                             }
 
-                            file_path = get_unique_path(opts.output_dir, albumdir_loc, "cue");
+                            file_path = get_unique_path(opts.output_dir, albumdir_loc, "cue", opts.unique);
                             CHAR2WCHAR(wide_filename, file_path);
                             safe_fwprintf(stdout, L"Exporting CUE sheet [%ls]\n", wide_filename);
-                            write_cue_sheet(handle, file_path, area_idx[j], file_path);
+                            write_cue_sheet(handle, file_path, area_idx[j], file_path, opts.export_cue_sheet_nobom);
                             free(file_path);
                             free(wide_filename);
                         }
@@ -467,7 +537,7 @@ int main(int argc, char* argv[])
                         else
 #endif
                         {
-                            file_path = get_unique_path(opts.output_dir, albumdir, "iso");
+                            file_path = get_unique_path(opts.output_dir, albumdir, "iso", opts.unique);
                             scarletbook_output_enqueue_raw_sectors(output, 0, total_sectors, file_path, "iso");
 
 
@@ -490,7 +560,7 @@ int main(int argc, char* argv[])
                                         strcat(albumdir_loc, j ? " [multi]" : " [stereo]");
                                     }
 
-                                    get_unique_dir(opts.output_dir_conc, &albumdir_loc);
+                                    get_unique_dir(opts.output_dir_conc, &albumdir_loc, opts.unique);
                                     mkdir_wrap(albumdir_loc, 0774);
                                     if(opts.output_dsf){
                                         CHAR2WCHAR(s_wchar, albumdir_loc);
@@ -544,8 +614,27 @@ int main(int argc, char* argv[])
                                 strcat(albumdir_loc, j ? " [multi]" : " [stereo]");
                             }
 
-                            file_path = get_unique_path(opts.output_dir, albumdir_loc, "dff");
+                            file_path = get_unique_path(opts.output_dir, albumdir_loc, "dff", opts.unique);
                             scarletbook_output_enqueue_track(output, area_idx[j], 0, file_path, "dsdiff_edit_master",
+                                (opts.convert_dst ? 1 : handle->area[area_idx[j]].area_toc->frame_format != FRAME_FORMAT_DST), 0, 0);
+                            free(file_path);
+                        }
+                        free(albumdir_loc);
+                    }
+
+                    else if (opts.output_dsf_em)
+                    {
+                        char *albumdir_loc;
+                        albumdir_loc = (char *)malloc(strlen(albumdir)+16);
+
+                        for(j = 0; j < n_areas; j ++){
+                            strcpy(albumdir_loc, albumdir);
+                            if(n_areas > 1){
+                                strcat(albumdir_loc, j ? " [multi]" : " [stereo]");
+                            }
+
+                            file_path = get_unique_path(opts.output_dir, albumdir_loc, "dsf", opts.unique);
+                            scarletbook_output_enqueue_track(output, area_idx[j], 0, file_path, "dsf_edit_master",
                                 (opts.convert_dst ? 1 : handle->area[area_idx[j]].area_toc->frame_format != FRAME_FORMAT_DST), 0, 0);
                             free(file_path);
                         }
@@ -566,7 +655,7 @@ int main(int argc, char* argv[])
                                 strcat(albumdir_loc, j ? " [multi]" : " [stereo]");
                             }
 
-                            get_unique_dir(opts.output_dir, &albumdir_loc);
+                            get_unique_dir(opts.output_dir, &albumdir_loc, opts.unique);
                             mkdir_wrap(albumdir_loc, 0774);
 
                             if(opts.output_dsf){

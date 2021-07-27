@@ -24,6 +24,7 @@
 
 #include "scarletbook.h"
 
-int write_cue_sheet(scarletbook_handle_t *, const char *, int, char *);
+#define CUE_NOBOM    1
+int write_cue_sheet(scarletbook_handle_t *, const char *, int, char *, int);
 
 #endif

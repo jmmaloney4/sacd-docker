@@ -43,7 +43,7 @@ static char *cue_escape(const char *src)
     return ret;
 }
 
-int write_cue_sheet(scarletbook_handle_t *handle, const char *filename, int area, char *cue_filename)
+int write_cue_sheet(scarletbook_handle_t *handle, const char *filename, int area, char *cue_filename, int flag)
 {
     FILE *fd;
 
@@ -61,11 +61,15 @@ int write_cue_sheet(scarletbook_handle_t *handle, const char *filename, int area
         return -1;
     }
 
+    if(!flag & CUE_NOBOM)
+    {
     // Write UTF-8 BOM
-    fputc(0xef, fd);
-    fputc(0xbb, fd);
-    fputc(0xbf, fd);
-    fprintf(fd, "\nREM File created by SACD Extract, version: " SACD_RIPPER_VERSION_STRING "\n");
+        fputc(0xef, fd);
+        fputc(0xbb, fd);
+        fputc(0xbf, fd);
+        fprintf(fd, "\n");
+    }
+    fprintf(fd, "REM File created by SACD Extract, version: " SACD_RIPPER_VERSION_STRING "\n");
 
     if (handle->master_toc->disc_genre[0].genre > 0)
     {

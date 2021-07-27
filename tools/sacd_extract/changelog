@@ -1,3 +1,9 @@
+version -.-.-
+    - added -B/--cue-nobom option to disable bom in cuesheets
+    - added -X/--xch-tracks option, to handle preferred channel configuration extraction (multi over two, or two over multi, ...)
+    - added -S/--output-dsf-em option to extract one DSF file
+    - added -W/-overwrite option, to allow overwrite output files (instead of adding (1), (2), etc to dir/file names)
+
 version 0.3.7
 
     - fixed a bug where arranger phonetic was referenced incorrectly during print (-P)

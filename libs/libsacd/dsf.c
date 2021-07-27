@@ -280,3 +280,18 @@ scarletbook_format_handler_t const * dsf_format_fn(void)
     };
     return &handler;
 }
+
+scarletbook_format_handler_t const * dsf_edit_master_format_fn(void) 
+{
+    static scarletbook_format_handler_t handler = 
+    {
+        "Sony DSD stream edit master file (dsf)", 
+        "dsf_edit_master", 
+        dsf_create, 
+        dsf_write_frame,
+        dsf_close, 
+        OUTPUT_FLAG_DSD |  OUTPUT_FLAG_EDIT_MASTER,
+        sizeof(dsf_handle_t)
+    };
+    return &handler;
+}

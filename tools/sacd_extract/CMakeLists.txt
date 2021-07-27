@@ -67,8 +67,8 @@ if(NOT CMAKE_BUILD_TYPE_UPPER STREQUAL "DEBUG")
   if (CMAKE_COMPILER_IS_GNUCC OR (CMAKE_C_COMPILER_ID MATCHES "Clang"))
     add_definitions(
         -pipe
-        -Wall -Wextra -Wcast-align -Wpointer-arith -O3
-        -Wno-unused-parameter)
+        -Wall -Wextra -Wcast-align -Wpointer-arith -O0 -g
+        -Wno-unused-parameter -fcommon)
   endif ()
   if(NOT CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
     add_definitions(
