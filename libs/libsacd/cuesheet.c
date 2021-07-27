@@ -83,15 +83,30 @@ int write_cue_sheet(scarletbook_handle_t *handle, const char *filename, int area
                                                , handle->master_toc->disc_date_day);
     }
 
+    if (handle->master_toc->album_set_size > 1) // Set of discs album
+    {
+        fprintf(fd, "REM DISC %d / %d\n", handle->master_toc->album_sequence_number, handle->master_toc->album_set_size);
+    }
+
     if (handle->master_text.disc_artist)
     {
         fprintf(fd, "PERFORMER \"%s\"\n", cue_escape(handle->master_text.disc_artist));
     }
+    else if (handle->master_text.album_artist)
+    {
+        fprintf(fd, "PERFORMER \"%s\"\n", cue_escape(handle->master_text.album_artist));
+    }
+    
 
     if (handle->master_text.disc_title)
     {
         fprintf(fd, "TITLE \"%s\"\n", cue_escape(handle->master_text.disc_title));
     }
+    else if (handle->master_text.album_title)
+    {
+        fprintf(fd, "TITLE \"%s\"\n", cue_escape(handle->master_text.album_title));
+    }
+    
 
     if (strlen(handle->master_toc->disc_catalog_number) > 0)
     {
