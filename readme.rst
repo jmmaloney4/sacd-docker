@@ -22,6 +22,8 @@ This is a fork of setmind/sacd-ripper some additional features:
   - option to overwrite output files instead to add " (1)", " (2)", etc to file/directory names
   - option to extract one DSF file with cuesheet (similar to DFF)
 
+This can be compiled with gcc10+ (-fcommon option added in CMakeLists.txt)
+
 This is a fork of sacd-ripper/sacd-ripper.  For original release documents, please refer to https://github.com/sacd-ripper/sacd-ripper .  This fork focuses only on improvement of sacd_extract, so most of the irrelevant codes have been removed.
 
 This fork adds the following additional features to the original sacd_extract.
@@ -51,8 +53,14 @@ The following options are available for the sacd_extract commandline tool: ::
 
   -2, --2ch-tracks                : Export two channel tracks (default)
   -m, --mch-tracks                : Export multi-channel tracks
+  -X, --xch-tracks[=MODE]         : Export multi-channel or two channel tracks MODE:
+                                      m2 - multi-channel or if not exist two channel tracks
+                                      2m - two-channel or if not exist multi channel tracks
+                                      m  - multi-channel tracks only
+                                      2  - two channel tracks only
   -e, --output-dsdiff-em          : output as Philips DSDIFF (Edit Master) file
   -p, --output-dsdiff             : output as Philips DSDIFF file
+  -S, --output-dsf-em             : output as Sony DSF (Edit Master) file
   -s, --output-dsf                : output as Sony DSF file
   -z, --dsf-nopad                 : Do not zero pad DSF (cannot be used with -t)
   -t, --select-track              : only output selected track(s) (ex. -t 1,5,13)
@@ -60,11 +68,17 @@ The following options are available for the sacd_extract commandline tool: ::
   -w, --concurrent                : Concurrent ISO+DSF/DSDIFF processing mode
   -c, --convert-dst               : convert DST to DSD
   -C, --export-cue                : Export a CUE Sheet
-  -i, --input[=FILE]              : set source and determine if "iso" image,
+  -B, --cue-nobom                 : CUE Sheet without UTF-8 BOM
+  -i, --input[=FILE]              : set source and determine if "iso" image, 
                                     device or server (ex. -i 192.168.1.10:2002)
   -o, --output-dir[=DIR]          : Output directory (ISO output dir for concurrent processing mode)
   -y, --output-dir-conc[=DIR]     : DSF/DSDIFF Output directory for concurrent processing mode
   -P, --print                     : display disc and track information
+  -W, --overwrite                 : overwrite, instead of numbering directory or file if already exist
+  -v, --version                   : Display version
+
+  -?, --help                      : Show this help message
+  --usage                         : Display brief usage message
 
 
 Usage examples
