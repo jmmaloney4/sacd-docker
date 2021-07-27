@@ -68,7 +68,7 @@ if(NOT CMAKE_BUILD_TYPE_UPPER STREQUAL "DEBUG")
     add_definitions(
         -pipe
         -Wall -Wextra -Wcast-align -Wpointer-arith -O3
-        -Wno-unused-parameter -fcommon)
+        -Wno-unused-parameter)
   endif ()
   if(NOT CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
     add_definitions(
