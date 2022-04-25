@@ -4,7 +4,7 @@ COPY . /root/sacd-ripper
 WORKDIR /root/sacd-ripper/tools/sacd_extract/
 RUN cmake .; make
 
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 RUN mkdir -p /root/bin/
 COPY --from=0 /root/sacd-ripper/tools/sacd_extract/sacd_extract /root/bin/sacd_extract
 ENTRYPOINT ["/root/bin/sacd_extract"]
