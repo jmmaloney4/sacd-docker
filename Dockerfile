@@ -1,4 +1,4 @@
-FROM ubuntu@sha256:669e010b58baf5beb2836b253c1fd5768333f0d1dbcb834f7c07a4dc93f474be
+FROM ubuntu@sha256:27cb6e6ccef575a4698b66f5de06c7ecd61589132d5a91d098f7f3f9285415a9
 RUN apt-get update; apt-get -y install cmake libc6-dev; apt-get -y autoremove
 COPY . /root/sacd-ripper
 WORKDIR /root/sacd-ripper/tools/sacd_extract/
